@@ -1,0 +1,468 @@
+{
+  "name": "Ingreso Historia - Backend",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "aa85e1d0-6442-4a7f-b0df-225d54bffae9",
+      "name": "Start"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ae1adf7f-2476-4ef8-bd29-13189003262b",
+              "name": "idHistoriaATrabajar",
+              "value": "HU-001",
+              "type": "string"
+            },
+            {
+              "id": "1c9dbc84-6fa5-4bc1-aae7-0e40811a3d35",
+              "name": "nombreHojaDestino",
+              "value": "CP - Registro de usuario",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "id": "d3e4630d-6c4d-4421-bb97-221d5cf7d73b",
+      "name": "Edit Fields           (Hoja de destino)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = [];\n\n// --- ACCESO A LA FILA DE LA HOJA ---\nconst itemData = $input.first().json;\n\n// 1. Leer contexto directamente desde la hoja (columna: Contexto para razonamiento)\nlet tipoDeCasosSolicitados = itemData[\"Contexto para razonamiento\"] || \"\";\n\nif (!tipoDeCasosSolicitados) {\n  console.warn(\"No se encontró 'Contexto para razonamiento' en la hoja. Usando valor por defecto.\");\n  tipoDeCasosSolicitados = \"Generá casos exhaustivos campo por campo, no solo flujos generales. Para cada campo del formulario, generá múltiples casos válidos e inválidos que cubran: campo vacío, longitud menor a la mínima, longitud mayor a la máxima, tipo de dato incorrecto, formato incorrecto si aplica, caracteres especiales, espacios, solo números o solo letras si corresponde, y valores exactamente en los límites permitidos. Todos los casos deben ajustarse a las validaciones de campo y a las reglas de negocio definidas. No generes solo ejemplos típicos. Quiero una lista detallada y sistemática de casos por cada campo del formulario, no agrupados por flujo.\";\n}\n\n// 2. Construye el contenido del prompt (la instrucción) para la IA.\nlet promptContent = `Eres un experto QA y generador de casos de prueba. Necesito que generes ${tipoDeCasosSolicitados} para la siguiente historia de usuario.\n\nTu respuesta DEBE ser un ARRAY DE OBJETOS JSON, donde cada objeto JSON representa un caso de prueba. Cada objeto JSON debe tener las siguientes claves exactas y sus valores, EN ESTE ORDEN ESPECÍFICO:\n- \"ID Caso de Prueba\": String (ej. CP-001 - ESTO LO CREAS VOS)\n- \"ID Historia de Usuario\": String (Se debe completar con el ID de la historia de usuario que se está analizando para generar este caso de prueba. Por ejemplo: \"${itemData.ID || ''}\")\n- \"Descripción\": String (TITULO DESCRIPTIVO - ESTO LO CREAS VOS.Por ejemplo: Registrar usuario, Intentar registrar usuario ingresando nombre inválido)\n- \"Tipo de caso\": String (Debe indicar si el resultado esperado es 'Positivo' o 'Negativo'. Por ejemplo: 'Negativo - Error de Validación', 'Positivo - Flujo Alternativo')\n- \"Prioridad\": String (ALTA, MEDIA, BAJA - ESTO LO CREAS VOS)\n- \"Precondiciones de ejecución\": String (LO QUE DEBE EXISTIR ANTES DE INICIAR LA PRUEBA - ESTO LO CREAS VOS)\n- \"Reglas de negocio\": String (Extrae y lista las reglas de negocio relevantes de la historia de usuario que se aplican a este caso de prueba específico. Si no aplica, dejar vacío.)\n- \"Validaciones de campo\": String (Extrae y lista las validaciones de campo relevantes de la historia de usuario que se aplican a este caso de prueba específico. Si no aplica, dejar vacío.)\n- \"Datos de entrada\": String (Genera los datos de prueba específicos necesarios para ejecutar este caso, analizando la historia de usuario, validaciones de campo y reglas de negocio. Esto es IMPORTANTE:LOS DATOS DEBEN PARECER LO MAS REALES POSIBLES. Por ejemplo: \"name:Ana, surname:Flores, email: 'test@example.com', title:Psicóloga, password: '67@jKLm-0098L!'\")\n- \"Pasos para ejecutar\": String (PASO A PASO PARA EJECUTAR - ESTO LO CREAS VOS)\n- \"Resultado esperado\": String (LO QUE DEBERÍA OCURRIR, ESPECIFICANDO CLARAMENTE SI ES UN RESULTADO POSITIVO O NEGATIVO, Y CUÁL ES EL COMPORTAMIENTO ESPERADO. Por ejemplo: \"El sistema debe mostrar el mensaje de error 'Contraseña inválida'. Seguido del código correspondiente según las Reglas de Negocio / Lógica\")\n- \"Postcondiciones de ejecución\": String (Describe el estado del sistema o los datos después de la ejecución exitosa o fallida de este caso de prueba. Por ejemplo: \"El registro no debe ser creado en la base de datos\", \"El usuario debe permanecer en la pantalla de login\". A su vez, anexar el código esperado segun las Reglas de Negocio / Lógica)\n- \"Escrito por\": \"Generado por IA, diseñado por QA\"\n- \"Observaciones\": String (Si la IA tiene alguna observación pertinente al caso, que la añada aquí. Si no, que deje la cadena vacía: \"\")\n\nNO incluyas ningún texto introductorio, explicaciones o texto adicional fuera del array JSON. Solo el array JSON.\n\nAquí está la Historia de Usuario con sus detalles:\nID: ${itemData.ID || ''}\nFuncionalidad: ${itemData.Funcionalidad || ''}\nDescripción: ${itemData[\"Historia de Usuario\"] || ''}\nCriterios de Aceptación: ${itemData[\"Criterios de Aceptación\"] || ''}\nValidaciones de Campos: ${itemData[\"Validaciones de Campos\"] || ''}\nReglas de Negocio / Lógica: ${itemData[\"Reglas de Negocio / Lógica\"] || ''}\nNotas Opcionales: ${itemData[\"Notas Opcionales\"] || ''}`;\n\n// Escapa comillas dobles y saltos de línea\npromptContent = promptContent.replace(/\"/g, '\\\\\"');\npromptContent = promptContent.replace(/\\n/g, '\\\\n');\n\n// 3. Construye el objeto para el nodo HTTP\nconst bodyForAI = {\n  \"model\": \"gemini-1.5-flash\",\n  \"contents\": [\n    {\n      \"role\": \"user\",\n      \"parts\": [\n        {\n          \"text\": promptContent\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"maxOutputTokens\": 8192\n  }\n};\n\n// 4. Salida\nitems.push({ json: bodyForAI });\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        0
+      ],
+      "id": "f8c568e9-3acf-444f-a9ed-ad5bb9102f9e",
+      "name": "Code (Construir prompt)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={{ TU_CLAVE }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        0
+      ],
+      "id": "6732baa9-8311-41d8-b944-71ffe936a277",
+      "name": "HTTP Request (Enviar prompt)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Paso 1: Obtener la respuesta de la IA ---\nconst aiResponseText = $input.first().json.candidates[0].content.parts[0].text;\nconst outputItems = [];\n\n// --- Paso 2: Limpieza y saneamiento agresivo ---\n// Busca el primer corchete de apertura y el último de cierre.\nconst jsonStart = aiResponseText.indexOf('[');\nconst jsonEnd = aiResponseText.lastIndexOf(']');\n\nif (jsonStart === -1 || jsonEnd === -1 || jsonStart >= jsonEnd) {\n    return [{ json: { error: 'No se pudo encontrar la estructura del JSON.' } }];\n}\n\n// Extrae solo la parte que contiene el JSON.\nlet jsonContent = aiResponseText.substring(jsonStart, jsonEnd + 1);\n\n// Limpia el JSON para que el \"parseo\" funcione.\njsonContent = jsonContent.replace(/(\\r\\n|\\n|\\r|\\t)/g, ' '); // Reemplaza todos los saltos de línea y tabulaciones con un espacio.\njsonContent = jsonContent.replace(/,(\\s*)]/g, ']'); // Elimina comas antes de un corchete de cierre.\n\n// Corrige los errores de escape comunes.\njsonContent = jsonContent.replace(/\\\\\\s/g, '\\\\s');\njsonContent = jsonContent.replace(/\\\\\\d/g, '\\\\d');\njsonContent = jsonContent.replace(/\\\\'/g, '\\'');\n\n// --- Paso 3: Intentar parsear el JSON ---\ntry {\n    const parsedArray = JSON.parse(jsonContent);\n    // Para cada elemento del JSON, lo agrega a la salida de n8n.\n    for (const item of parsedArray) {\n        outputItems.push({ json: item });\n    }\n} catch (e) {\n    // Si el \"parseo\" falla, se registra el error.\n    console.error('Error al parsear el JSON:', e.message, 'Raw data:', jsonContent);\n    return [{\n        json: {\n            error: 'Error de parseo final',\n            details: e.message,\n            raw_data: jsonContent\n        }\n    }];\n}\n\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        0
+      ],
+      "id": "22ab1796-39e6-4354-8d87-6c5c7894ebe5",
+      "name": "Code1 (Parsear respuesta)"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{ ID_DOC_SHEET }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Requerimientos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        420,
+        0
+      ],
+      "id": "ee9d94b4-03fd-4c52-a42c-a08c0caf382d",
+      "name": "Get row(s) in sheet  (Leer hoja)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{ MI_CREDENCIAL_ID }}",
+          "name": "Credencial 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "{{ ID_DOC_SHEET }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "CP - Registro de usuario",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Resultado esperado": "={{ $json[\"Resultado esperado\"] }}",
+            "ID Caso de Prueba": "={{ $json[\"ID Caso de Prueba\"] }}",
+            "ID Historia de Usuario": "={{ $json[\"ID Historia de Usuario\"] }}",
+            "Descripción": "={{ $json[\"Descripción\"] }}",
+            "Endpoint": "={{ $json[\"Endpoint\"] }}",
+            "Tipo de caso": "={{ $json[\"Tipo de caso\"] }}",
+            "Prioridad": "={{ $json[\"Prioridad\"] }}",
+            "Precondiciones de ejecución": "={{ $json[\"Precondiciones de ejecución\"] }}",
+            "Reglas de negocio": "={{ $json[\"Reglas de negocio\"] }}",
+            "Validaciones de campo": "={{ $json[\"Validaciones de campo\"] }}",
+            "Datos de entrada": "={{ $json[\"Datos de entrada\"] }}",
+            "Pasos para ejecutar": "={{ $json[\"Pasos para ejecutar\"] }}",
+            "Estado de ejecución": "={{ $json[\"Estado de ejecución\"] }}",
+            "Resultado obtenido": "={{ $json[\"Resultado obtenido\"] }}",
+            "Resultado de ejecución": "={{ $json[\"Resultado de ejecución\"] }}",
+            "Evidencia": "={{ $json[\"Evidencia\"] }}",
+            "Postcondiciones de ejecución": "={{ $json[\"Postcondiciones de ejecución\"] }}",
+            "CP interrelacionado": "={{ $json[\"CP interrelacionado\"] }}",
+            "Escrito por": "={{ $json[\"Escrito por\"] }}",
+            "Ejecutado por": "={{ $json[\"Ejecutado por\"] }}",
+            "Observaciones": "={{ $json[\"Observaciones\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID Caso de Prueba",
+              "displayName": "ID Caso de Prueba",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ID Historia de Usuario",
+              "displayName": "ID Historia de Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Colección",
+              "displayName": "Colección",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Carpeta",
+              "displayName": "Carpeta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Descripción",
+              "displayName": "Descripción",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Endpoint",
+              "displayName": "Endpoint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tipo de caso",
+              "displayName": "Tipo de caso",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Prioridad",
+              "displayName": "Prioridad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Precondiciones de ejecución",
+              "displayName": "Precondiciones de ejecución",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reglas de negocio",
+              "displayName": "Reglas de negocio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Validaciones de campo",
+              "displayName": "Validaciones de campo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Datos de entrada",
+              "displayName": "Datos de entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pasos para ejecutar",
+              "displayName": "Pasos para ejecutar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resultado esperado",
+              "displayName": "Resultado esperado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado de ejecución",
+              "displayName": "Estado de ejecución",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resultado obtenido",
+              "displayName": "Resultado obtenido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resultado de ejecución",
+              "displayName": "Resultado de ejecución",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Evidencia",
+              "displayName": "Evidencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Postcondiciones de ejecución",
+              "displayName": "Postcondiciones de ejecución",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CP interrelacionado",
+              "displayName": "CP interrelacionado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Escrito por",
+              "displayName": "Escrito por",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ejecutado por",
+              "displayName": "Ejecutado por",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Observaciones",
+              "displayName": "Observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1280,
+        0
+      ],
+      "id": "246aba1e-a0e6-4f7b-a041-48010194fc41",
+      "name": "Append row in sheet (Agregar valores en hoja de destino)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{ MI_CREDENCIAL_ID }}",
+          "name": "Credencial 1"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields           (Hoja de destino)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields           (Hoja de destino)": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet  (Leer hoja)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Construir prompt)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (Enviar prompt)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (Enviar prompt)": {
+      "main": [
+        [
+          {
+            "node": "Code1 (Parsear respuesta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1 (Parsear respuesta)": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet (Agregar valores en hoja de destino)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet  (Leer hoja)": {
+      "main": [
+        [
+          {
+            "node": "Code (Construir prompt)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "87b7f492-11e5-40a2-ab89-f94e82c0c5fe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1eda71abdf3c9a53bc774e035d4e342527d7427421678c5c7092b3ae6133e11d"
+  },
+  "id": "x5VkCLfZoqf4fedb",
+  "tags": []
+}
