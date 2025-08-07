@@ -1,4 +1,4 @@
-# 🤖 Flujos de n8n para Automatización de QA
+# 🤖 Flujos en n8n para automatizar pruebas y procesos como QA
 
 Este repositorio centraliza los flujos de n8n para la automatización de procesos de **Control de Calidad (QA)**.
 
