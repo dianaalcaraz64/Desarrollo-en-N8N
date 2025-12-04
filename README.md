@@ -1,4 +1,4 @@
-# 🤖 Flujos en n8n para automatizar pruebas y procesos como QA
+#  Flujos en n8n para automatizar pruebas y procesos como QA
 
 Este repositorio centraliza los flujos de n8n para la automatización de procesos de **Control de Calidad (QA)**.
 
@@ -9,7 +9,7 @@ El objetivo principal es crear un sistema que pueda:
 
 ---
 
-### **🚀 Estado de los Flujos**
+### ** Estado de los Flujos**
 
 Actualmente, solo el flujo de **generación de casos de prueba** está completo(adaptable al tipo de prueba necesitada). Los demás se irán añadiendo a medida que se desarrollen.
 
@@ -19,7 +19,7 @@ Actualmente, solo el flujo de **generación de casos de prueba** está completo(
 
 ---
 
-### **🔑 Configuración de Variables**
+### ** Configuración de Variables**
 
 El flujo contiene marcadores de posición (`{{ ... }}`) en lugar de datos sensibles. Tenés que reemplazar estos valores para que el flujo funcione.
 
@@ -28,7 +28,7 @@ El flujo contiene marcadores de posición (`{{ ... }}`) en lugar de datos sensib
 
 ---
 
-### **📝 Instrucciones para el Reemplazo**
+### ** Instrucciones para el Reemplazo**
 
 1.  Abrí el archivo `flujo-generacion-casos-prueba.json`.
 2.  Buscá las variables con el formato `{{ ... }}`.
