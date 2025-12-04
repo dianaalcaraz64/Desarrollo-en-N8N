@@ -13,9 +13,9 @@ El objetivo principal es crear un sistema que pueda:
 
 Actualmente, solo el flujo de **generación de casos de prueba** está completo(adaptable al tipo de prueba necesitada). Los demás se irán añadiendo a medida que se desarrollen.
 
-* **`flujo-generacion-casos-prueba.json`**: **(Listo)** Este flujo usa IA para generar casos de prueba y los formatea en JSON.
-* `flujo-ejecucion-pruebas.json`: (En desarrollo)
-* `flujo-gestion-jira.json`: (En desarrollo)
+* **`flujo-generacion-casos-prueba`**: **(Listo)** Este flujo usa IA para generar casos de prueba y los formatea en JSON.
+* `flujo-ejecucion-pruebas`: (En desarrollo)
+* `flujo-gestion-jira`: (En desarrollo)
 
 ---
 
